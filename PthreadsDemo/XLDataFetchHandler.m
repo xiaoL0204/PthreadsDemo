@@ -32,65 +32,36 @@
         __block NSInteger httpCount = 0;
         
         NSMutableArray *allThemeList = [NSMutableArray array];
-        [self requestHomeThemeListWithThemeIds:@"1,2" completion:^(NSArray *themeArr, NSString *errMsg, NSError *error) {
-            httpCount ++;
-            [allThemeList addObjectsFromArray:themeArr];
-            
-            if (serverCompletion) {
-                serverCompletion(themeArr,httpCount==3);
-            }
-            
-            //            [[XLThemePersistenceHandler sharedInstance] saveThemeListPersistence:themeArr completion:^{
-            //
-            //            }];
-            
-            
-            if (httpCount == 3) {
-                httpDone = YES;
-                pthread_cond_signal(&cond_t);
-            }
-            
-            NSLog(@"requestHomeThemeListWithThemeIds  :1,2   complete");
-        }];
+        NSArray *themeIdArray = @[@"1,2",@"3,4,5",@"6,7,8"];
         
-        [self requestHomeThemeListWithThemeIds:@"3,4,5" completion:^(NSArray *themeArr, NSString *errMsg, NSError *error) {
-            httpCount ++;
+        //分3次请求数据
+        for (int i=0; i < themeIdArray.count; i++) {
+            NSString *themeIds = themeIdArray[i];
             
-            [allThemeList addObjectsFromArray:themeArr];
-            
-            if (serverCompletion) {
-                serverCompletion(themeArr,httpCount==3);
-            }
-            
-            //            [[XLThemePersistenceHandler sharedInstance] saveThemeListPersistence:themeArr completion:^{
-            //
-            //            }];
-            
-            
-            if (httpCount == 3) {
-                httpDone = YES;
-                pthread_cond_signal(&cond_t);
-            }
-            
-            NSLog(@"requestHomeThemeListWithThemeIds  :3,4,5   complete");
-        }];
+            [self requestHomeThemeListWithThemeIds:themeIds completion:^(NSArray *themeArr, NSString *errMsg, NSError *error) {
+                //回到主线程
+                httpCount ++;
+                [allThemeList addObjectsFromArray:themeArr];
+                
+                if (serverCompletion) {
+                    serverCompletion(themeArr,httpCount==themeIdArray.count);
+                }
+                
+                //            [[XLThemePersistenceHandler sharedInstance] saveThemeListPersistence:themeArr completion:^{
+                //
+                //            }];
+                
+                
+                if (httpCount == themeIdArray.count) {
+                    httpDone = YES;
+                    pthread_cond_signal(&cond_t);
+                }
+                
+                NSLog(@"requestHomeThemeListWithThemeIds  :%@   complete",themeIds);
+            }];
+        }
         
-        [self requestHomeThemeListWithThemeIds:@"6,7,8" completion:^(NSArray *themeArr, NSString *errMsg, NSError *error) {
-            httpCount ++;
-            [allThemeList addObjectsFromArray:themeArr];
-            
-            if (serverCompletion) {
-                serverCompletion(themeArr,httpCount==3);
-            }
-            
-            
-            if (httpCount == 3) {
-                httpDone = YES;
-                pthread_cond_signal(&cond_t);
-            }
-            
-            NSLog(@"requestHomeThemeListWithThemeIds  :6,7,8   complete");
-        }];
+        
         
         
         pthread_mutex_t mutex_t = PTHREAD_MUTEX_INITIALIZER;
@@ -118,6 +89,7 @@
         return;
     }
     
+    //fake data
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(random()%200/100.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         NSMutableArray *themeArr = [NSMutableArray array];
         NSInteger randomIndex = (random()%10)*100;
